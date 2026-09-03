@@ -1,0 +1,23 @@
+# Secrets
+.env
+firebase-key.json
+*.key
+*.pem
+*.p12
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+.DS_Store
