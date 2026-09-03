@@ -135,6 +135,8 @@ def generer_conseil_fallback(moyenne: float) -> str:
 
 # ==================== ENDPOINTS ====================
 @app.get("/")
+@app.get("/api")
+@app.get("/api/index.py")
 async def root():
     return {
         "status": "online",
@@ -144,14 +146,21 @@ async def root():
             "gemini_error": gemini_error,
             "firebase_ready": db is not None,
             "firebase_error": firebase_error,
+        },
+        "endpoints": {
+            "swagger_docs": "/docs",
+            "health": "/health",
+            "post_reponses": "POST /reponses"
         }
     }
 
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"ok": True}
 
 @app.post("/reponses")
+@app.post("/api/reponses")
 async def recevoir_reponse(payload: dict, authorization: str = Header(None)):
     firestore_db = init_firebase()
     if not firestore_db:
