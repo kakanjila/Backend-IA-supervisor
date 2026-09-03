@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+firebase-admin
+pandas
+numpy
+python-dotenv
+google-genai
