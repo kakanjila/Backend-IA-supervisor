@@ -177,6 +177,8 @@ async def obtenir_conseil_strategique_gemini(payload: dict) -> list:
 @app.get("/")
 @app.get("/api")
 @app.get("/main.py")
+@app.get("/api/index.py")
+@app.get("/index.py")
 async def root():
     return {
         "status": "online",
