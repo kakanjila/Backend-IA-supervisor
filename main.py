@@ -130,8 +130,48 @@ def generer_conseil_fallback(moyenne: float) -> str:
         return "Disponibilité correcte. Priorisez le réassort des linéaires frais avant l'affluence de 10h."
     elif moyenne >= 2.5:
         return "Ruptures constatées en rayon. Vérifiez d'urgence les stocks en réserve et le balisage prix."
-    else:
-        return "Niveau critique de ruptures. Intervention commerciale urgente requise auprès du point de vente."
+async def obtenir_conseil_strategique_gemini(payload: dict) -> list:
+    brand = payload.get("brand_name", "Socolait")
+    ruptures = payload.get("top_ruptures", [])
+    cat_stats = payload.get("categories_stats", {})
+    enseignes = payload.get("enseignes_stats", {})
+    regions = payload.get("regions_stats", {})
+
+    prompt = (
+        f"Tu es un directeur commercial et logistique expert en Retail à Madagascar pour la marque {brand}. "
+        f"Voici les données d'audit consolidées du réseau de distribution :\n"
+        f"- Ruptures critiques constatées : {json.dumps(ruptures, ensure_ascii=False)}\n"
+        f"- Performances par catégorie : {json.dumps(cat_stats, ensure_ascii=False)}\n"
+        f"- Performances par enseigne : {json.dumps(enseignes, ensure_ascii=False)}\n"
+        f"- Performances régionales : {json.dumps(regions, ensure_ascii=False)}\n\n"
+        "Génère exactement 3 recommandations stratégiques exécutives, concrètes et immédiatement actionnables "
+        "numérotées 1, 2 et 3 :\n"
+        "1. Recommandation Logistique & Réassort (focus zones ou produits en rupture)\n"
+        "2. Recommandation Négociation Enseignes (focus facing, litiges ou pénalités de sous-performance)\n"
+        "3. Recommandation Commerciale & Allocation Budgétaire (arbitrage des tournées et audit)"
+    )
+
+    if gemini_client:
+        model_names = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        for model_name in model_names:
+            try:
+                response = gemini_client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                if response and response.text:
+                    lines = [line.strip() for line in response.text.split("\n") if line.strip()]
+                    return lines if len(lines) >= 3 else [response.text.strip()]
+            except Exception as e:
+                print(f"⚠️ Erreur Gemini Strategic Advice ({model_name}): {e}")
+                continue
+
+    # Fallback heuristique intelligent
+    return [
+        f"1. Logistique & Réapprovisionnement : Déployer en priorité un flux de réassort d'urgence sur les points de vente présentant des ruptures critiques, avec un passage hebdomadaire supplémentaire le vendredi matin.",
+        f"2. Négociation Enseignes : Organiser une revue de compte avec les enseignes sous le seuil de 80% de conformité facing pour demander le respect strict du planogramme contractuel.",
+        f"3. Arbitrage Budgétaire : Réallouer 25% du budget d'audit des zones conformes (>90%) vers les provinces à fort potentiel commercial afin de maximiser le retour sur investissement."
+    ]
 
 # ==================== ENDPOINTS ====================
 @app.get("/")
@@ -222,6 +262,27 @@ async def recevoir_reponse(payload: dict, authorization: str = Header(None)):
     except Exception as e:
         print(f"❌ Erreur lors du traitement de la réponse : {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/strategic-advice")
+@app.post("/api/strategic-advice")
+async def recommander_strategie(payload: dict):
+    try:
+        conseils = await obtenir_conseil_strategique_gemini(payload)
+        return {
+            "status": "ok",
+            "conseils": conseils,
+            "count": len(conseils)
+        }
+    except Exception as e:
+        print(f"❌ Erreur recommandation stratégique : {e}")
+        return {
+            "status": "fallback",
+            "conseils": [
+                "1. Logistique : Renforcer les livraisons du vendredi matin sur les hypermarchés cibles.",
+                "2. Négociation : Demander un plan de redressement de facing auprès des enseignes sous les 80%.",
+                "3. Budget : Rééquilibrer les budgets d'audit vers les zones en croissance."
+            ]
+        }
 
 if __name__ == "__main__":
     import uvicorn
