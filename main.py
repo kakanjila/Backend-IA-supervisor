@@ -263,6 +263,11 @@ async def recevoir_reponse(payload: dict, authorization: str = Header(None)):
         print(f"❌ Erreur lors du traitement de la réponse : {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.options("/strategic-advice")
+@app.options("/api/strategic-advice")
+async def options_strategic_advice():
+    return JSONResponse(status_code=200, content={"status": "ok"})
+
 @app.post("/strategic-advice")
 @app.post("/api/strategic-advice")
 async def recommander_strategie(payload: dict):
