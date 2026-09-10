@@ -214,7 +214,8 @@ async def root():
         "endpoints": {
             "swagger_docs": "/docs",
             "health": "/health",
-            "post_reponses": "POST /reponses"
+            "post_reponses": "POST /reponses",
+            "post_strategic_advice": "POST /strategic-advice"
         }
     }
 
