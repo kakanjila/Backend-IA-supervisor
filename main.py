@@ -24,14 +24,24 @@ class VercelPathMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         if scope["type"] == "http":
             headers = dict(scope.get("headers", []))
-            matched_path = headers.get(b"x-matched-path") or headers.get(b"x-forwarded-uri") or headers.get(b"x-real-path")
-            if matched_path:
-                try:
-                    raw_path = matched_path.decode("utf-8").split("?")[0]
-                    if raw_path:
-                        scope["path"] = raw_path
-                except Exception:
-                    pass
+            for header_name in [
+                b"x-matched-path",
+                b"x-forwarded-uri",
+                b"x-original-url",
+                b"x-rewrite-url",
+                b"x-invoke-path",
+                b"x-real-path",
+                b"x-vercel-path"
+            ]:
+                val = headers.get(header_name)
+                if val:
+                    try:
+                        raw = val.decode("utf-8").split("?")[0]
+                        if raw and raw not in ["/main.py", "/index.py", "/api/index.py"]:
+                            scope["path"] = raw
+                            break
+                    except Exception:
+                        pass
         await self.app(scope, receive, send)
 
 app.add_middleware(VercelPathMiddleware)
@@ -198,9 +208,6 @@ async def obtenir_conseil_strategique_gemini(payload: dict) -> list:
 # ==================== ENDPOINTS ====================
 @app.get("/")
 @app.get("/api")
-@app.get("/main.py")
-@app.get("/api/index.py")
-@app.get("/index.py")
 async def root():
     return {
         "status": "online",
