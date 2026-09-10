@@ -269,16 +269,21 @@ async def recevoir_reponse(payload: dict, authorization: str = Header(None)):
         print(f"❌ Erreur lors du traitement de la réponse : {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.options("/strategic-advice")
-@app.options("/api/strategic-advice")
-async def options_strategic_advice():
-    return JSONResponse(status_code=200, content={"status": "ok"})
+@app.api_route("/strategic-advice", methods=["GET", "POST", "OPTIONS"])
+@app.api_route("/api/strategic-advice", methods=["GET", "POST", "OPTIONS"])
+async def recommander_strategie(request: Request):
+    if request.method == "OPTIONS":
+        return JSONResponse(status_code=200, content={"status": "ok"})
 
-@app.post("/strategic-advice")
-@app.post("/api/strategic-advice")
-async def recommander_strategie(payload: dict):
+    payload = {}
+    if request.method == "POST":
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = {}
+
     try:
-        conseils = await obtenir_conseil_strategique_gemini(payload)
+        conseils = await obtenir_conseil_strategique_gemini(payload or {})
         return {
             "status": "ok",
             "conseils": conseils,
