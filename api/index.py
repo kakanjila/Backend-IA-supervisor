@@ -14,6 +14,28 @@ load_dotenv()
 
 app = FastAPI(title="Backend IA Superviseur (Serverless Vercel)")
 
+# Middleware pour restaurer le chemin d'URL d'origine sous Vercel Serverless
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+class VercelPathMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] == "http":
+            headers = dict(scope.get("headers", []))
+            matched_path = headers.get(b"x-matched-path") or headers.get(b"x-forwarded-uri") or headers.get(b"x-real-path")
+            if matched_path:
+                try:
+                    raw_path = matched_path.decode("utf-8").split("?")[0]
+                    if raw_path:
+                        scope["path"] = raw_path
+                except Exception:
+                    pass
+        await self.app(scope, receive, send)
+
+app.add_middleware(VercelPathMiddleware)
+
 # Activer CORS pour permettre les appels depuis le Frontend Web et Flutter
 app.add_middleware(
     CORSMiddleware,
