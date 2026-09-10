@@ -329,6 +329,40 @@ async def recommander_strategie(request: Request):
             ]
         }
 
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
+async def catch_all_dispatcher(request: Request, full_path: str):
+    if request.method == "OPTIONS":
+        return JSONResponse(status_code=200, content={"status": "ok"})
+
+    clean_path = full_path.lower().strip("/")
+
+    if "strategic" in clean_path:
+        return await recommander_strategie(request)
+
+    if "reponse" in clean_path:
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        return await recevoir_reponse(body)
+
+    if "health" in clean_path:
+        return {"ok": True}
+
+    if request.method == "POST":
+        try:
+            body = await request.json()
+            if "top_ruptures" in body or "brand_name" in body or "categories_stats" in body:
+                return await recommander_strategie(request)
+            if "reponse_id" in body or "magasin_id" in body:
+                return await recevoir_reponse(body)
+        except Exception:
+            pass
+        return await recommander_strategie(request)
+
+    return await root()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
